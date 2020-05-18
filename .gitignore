@@ -2,6 +2,7 @@ vendor
 downloads
 torrents
 cloud-torrent*
+certs/
 tmp/
 .vscode
 .torrent.bolt.db
