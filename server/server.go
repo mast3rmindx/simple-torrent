@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"net"
 
 	"errors"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/radovskyb/watcher"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 const (
@@ -48,8 +50,7 @@ type Server struct {
 	Auth           string `opts:"help=Optional basic auth in form 'user:password',env=AUTH"`
 	ProxyURL       string `opts:"help=Proxy url,env=PROXY_URL"`
 	ConfigPath     string `opts:"help=Configuration file path (default /etc/cloud-torrent.yaml)"`
-	KeyPath        string `opts:"help=TLS Key file path"`
-	CertPath       string `opts:"help=TLS Certicate file path,short=r"`
+	HostName   string `help: HostName for SSL`
 	RestAPI        string `opts:"help=Listen on a trusted port accepts /api/ requests (eg. localhost:3001),env=RESTAPI"`
 	Log            bool   `opts:"help=Enable request logging"`
 	Open           bool   `opts:"help=Open now with your default browser"`
@@ -103,9 +104,10 @@ func (s *Server) GetIsPendingBoot() bool {
 
 // Run the server
 func (s *Server) Run(version string) error {
-	isTLS := s.CertPath != "" || s.KeyPath != "" //poor man's XOR
-	if isTLS && (s.CertPath == "" || s.KeyPath == "") {
-		return fmt.Errorf("You must provide both key and cert paths")
+	isTLS := s.HostName != ""
+	_, err := net.LookupHost(s.HostName)
+	if err != nil {
+		return fmt.Errorf("Couldnt lookup provided domain name")
 	}
 	s.state.Stats.Title = s.Title
 	s.state.Stats.Version = version
@@ -248,7 +250,17 @@ func (s *Server) Run(version string) error {
 	}
 	log.Printf("Listening at %s://%s", proto, listenLog)
 	if isTLS {
-		return server.ListenAndServeTLS(s.CertPath, s.KeyPath)
+		certManager := autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(s.HostName),
+			Cache:      autocert.DirCache("certs"), //folder for storing certificates
+		}
+
+		server.TLSConfig = &tls.Config{
+			GetCertificate: certManager.GetCertificate,
+		}
+
+		return server.ListenAndServeTLS("", "")
 	}
 	return server.ListenAndServe()
 }
