@@ -50,7 +50,7 @@ type Server struct {
 	Auth           string `opts:"help=Optional basic auth in form 'user:password',env=AUTH"`
 	ProxyURL       string `opts:"help=Proxy url,env=PROXY_URL"`
 	ConfigPath     string `opts:"help=Configuration file path (default /etc/cloud-torrent.yaml)"`
-	HostName   string `help: HostName for SSL`
+	HostName       string `help: HostName for SSL`
 	RestAPI        string `opts:"help=Listen on a trusted port accepts /api/ requests (eg. localhost:3001),env=RESTAPI"`
 	Log            bool   `opts:"help=Enable request logging"`
 	Open           bool   `opts:"help=Open now with your default browser"`
